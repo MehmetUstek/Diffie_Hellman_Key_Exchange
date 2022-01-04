@@ -8,18 +8,24 @@ import json
 import time
 import threading
 
-prime_order_p = 299975359
-generator_g = 53
+prime_order_p = 16069
+generator_g = 21
+lock = threading.Lock()
+# semaphore = threading.Semaphore()
 
 
 def user_action(g, p):
-    secret = np.random.randint(1, 20)
+    secret = np.random.randint(2, 20)
     y = (g ** secret) % p
     return y, secret
 
 
-def calculate_private_key(y, secret):
-    return y ** secret % prime_order_p
+def calculate_private_key(y, secret, p):
+    lock.acquire()
+    # pk =  np.mod((np.power(y, secret)), p)
+    pk = (y ** secret) % p
+    lock.release()
+    return pk
 
 
 def write_to_file(message: str):
@@ -32,8 +38,8 @@ def append_fifteen_zeros_the_string(message: str):
     return message + "000000000000000"
 
 
-## Encrypted communication phase
-def encrypt(message: str):
+
+def encrypt(key, message: str):
     data = bytes(message, encoding='utf-8')
     cipher = AES.new(key, AES.MODE_CTR)
     ct_bytes = cipher.encrypt(data)
@@ -65,48 +71,88 @@ def decrypt(json_input):
 
 
 global K_ab_A
-global K_ab_B
 
 
-def get_user_input(message: str, i):
-    global K_ab_A
-    global K_ab_B
+def get_user_input(message: str):
+
     y_A, secret_a = user_action(generator_g, prime_order_p)
+    print("seca", secret_a)
     # Alice look if there is any. Else continue.
     f = open("Communication.txt", "a")
     f.write(str(y_A) + "\n")
     # print(y_A)
     f.close()
-    while True:
-        f = np.asarray(np.genfromtxt("Communication.txt", dtype='U'))
+    f = open("Communication.txt", "r")
+    f = np.genfromtxt("Communication.txt")
+    while f.size <= 1:
+        f = np.genfromtxt("Communication.txt")
+        # semaphore.acquire()
+
         print("2 sec")
-        if f.size > 1:
-            print("yes")
-            # TODO: Change this.
-            if i == 0:
-                y_B = f[1].astype(int)
-                K_ab_A = calculate_private_key(y_B, secret_a)
-            elif i == 1:
-                y_B = f[0].astype(int)
-                K_ab_B = calculate_private_key(y_B, secret_a)
-            break
-        time.sleep(10)
 
 
+        # lock.release()
+        # semaphore.release()
+        time.sleep(2)
+    lock.acquire()
+
+
+    print("yes")
+    # # TODO: Change this.
+    f = open("Communication.txt", "r")
+    lines = f.readlines()
+    line = lines[1]
+    y_B = int(line.strip())
+    print("y_B", y_B)
+    global K_ab_A
+    K_ab_A = pow(y_B, secret_a, prime_order_p)
+    # K_ab_A = calculate_private_key(y_B, secret_a, prime_order_p)
+    lock.release()
+
+
+
+global K_ab_B
+def user2():
+    # semaphore.acquire()
+    lock.acquire()
+    global K_ab_B
+    message = input("Please enter username" + "\n")
+    y_B, secret_b = user_action(generator_g, prime_order_p)
+    print("secb", secret_b)
+    print("y_B", y_B)
+    f = open("Communication.txt", "a")
+    f.write(str(y_B) + "\n")
+    # print(y_A)
+    f.close()
+    # t1.join()
+    f = open("Communication.txt", "r")
+    line = f.readline()
+    f.close()
+    y_A2 = int(line.strip())
+
+    # y_A2 = f[0]
+    print("y_A2", y_A2)
+    K_ab_B = pow(y_A2, secret_b, prime_order_p)
+    print("k", K_ab_B)
+    lock.release()
+    # semaphore.release()
 
 message = input("Please enter username" + "\n")
-t1 = threading.Thread(target=get_user_input, args=("username",0,))
+t1 = threading.Thread(target=get_user_input, args=("username",))
 t1.start()
-
-t2 = threading.Thread(target=get_user_input, args=("username",1,))
-message = input("Please enter username" + "\n")
+t2 = threading.Thread(target=user2)
 t2.start()
-t1.join()
 t2.join()
+t1.join()
 
 
-print(K_ab_A)
+
+print("k1",K_ab_A)
 print(K_ab_B)
+## Encrypted communication phase
+
+
+
 
 # y_A, secret_a = user_action(generator_g, prime_order_p)
 
@@ -118,20 +164,16 @@ print(K_ab_B)
 # f = open("Communication.txt", "a")
 # f.write(str(y_A) + "\n")
 # f.close()
+def get_private_key(K_ab_A, K_ab_B):
+    if K_ab_A == K_ab_B:
+        hashed_string = hl.sha256(str(K_ab_A).encode('utf-8')).hexdigest()
+        key = binascii.unhexlify(hashed_string)
+        return key
 
-# if K_ab_A == K_ab_B:
-#     hashed_string = hl.sha256(str(K_ab_A).encode('utf-8')).hexdigest()
-#     # print(hashed_string)
-#     # print(K_ab_A)
-#     # f = open("Communication.txt", "a")
-#     # f.write(hashed_string + "\n")
-#     # f.close()
-# # print(len(hashed_string))
-# key = binascii.unhexlify(hashed_string)
-#
-# encrypted_message = encrypt("hello")
-#
-# decrypt(encrypted_message)
+key = get_private_key(K_ab_A, K_ab_B)
+encrypted_message = encrypt(key, "hello")
+
+decrypt(encrypted_message)
 
 
 # Man in the middle

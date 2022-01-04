@@ -6,6 +6,7 @@ from base64 import b64encode
 from base64 import b64decode
 import json
 import time
+import threading
 
 prime_order_p = 299975359
 generator_g = 53
@@ -62,42 +63,60 @@ def decrypt(json_input):
     except (ValueError, KeyError):
         print("Incorrect decryption")
 
+def get_user_input(message: str):
+    message = input("Please enter " + message + "\n")
+    y_A, secret_a = user_action(generator_g, prime_order_p)
+    # Alice look if there is any. Else continue.
+    f = open("Communication.txt", "a")
+    f.write(str(y_A) + "\n")
+    print(y_A)
+    f.close()
 
-y_A, secret_a = user_action(generator_g, prime_order_p)
+
+
+
+t1 = threading.Thread(target=get_user_input, args=("username",))
+t1.start()
+t1.join()
+t2 = threading.Thread(target=get_user_input, args=("username",))
+t2.start()
+t2.join()
+t_end = time.time() + 60 * 15
+# while True:
+#     # Add 10-second wait in here. While another party continues.
+#     f = np.asarray(np.genfromtxt("Communication.txt", dtype='U'))
+#     print("10 sec")
+#     if f.size > 1:
+#         print("yes")
+#
+#         break
+#     time.sleep(10)
+
+
+# y_A, secret_a = user_action(generator_g, prime_order_p)
 y_B, secret_b = user_action(generator_g, prime_order_p)
 
-input_username = "Alice"
 
-K_ab_A = calculate_private_key(y_B, secret_a)
-K_ab_B = calculate_private_key(y_A, secret_b)
+# K_ab_A = calculate_private_key(y_B, secret_a)
+# K_ab_B = calculate_private_key(y_A, secret_b)
 
-f = open("Communication.txt", "a")
-f.write(str(y_A) + "\n")
-f.close()
+# f = open("Communication.txt", "a")
+# f.write(str(y_A) + "\n")
+# f.close()
 
-t_end = time.time() + 60 * 15
-while True:
-    # Add 10-second wait in here. While another party continues.
-    f = np.asarray(np.genfromtxt("Communication.txt", dtype='U'))
-    print("10 sec")
-    if f.size > 1:
-        print("yes")
-        break
-    time.sleep(10)
-
-if K_ab_A == K_ab_B:
-    hashed_string = hl.sha256(str(K_ab_A).encode('utf-8')).hexdigest()
-    print(hashed_string)
-    print(K_ab_A)
-    # f = open("Communication.txt", "a")
-    # f.write(hashed_string + "\n")
-    # f.close()
-print(len(hashed_string))
-key = binascii.unhexlify(hashed_string)
-
-encrypted_message = encrypt("hello")
-
-decrypt(encrypted_message)
+# if K_ab_A == K_ab_B:
+#     hashed_string = hl.sha256(str(K_ab_A).encode('utf-8')).hexdigest()
+#     # print(hashed_string)
+#     # print(K_ab_A)
+#     # f = open("Communication.txt", "a")
+#     # f.write(hashed_string + "\n")
+#     # f.close()
+# # print(len(hashed_string))
+# key = binascii.unhexlify(hashed_string)
+#
+# encrypted_message = encrypt("hello")
+#
+# decrypt(encrypted_message)
 
 
 # Man in the middle

@@ -41,22 +41,43 @@ if K_ab_A == K_ab_B:
     # f.close()
 print(len(hashed_string))
 key = binascii.unhexlify(hashed_string)
-data = b"Hello canimmmm"
-cipher = AES.new(key, AES.MODE_CTR)
-ct_bytes = cipher.encrypt(data)
-nonce = b64encode(cipher.nonce).decode('utf-8')
-ct = b64encode(ct_bytes).decode('utf-8')
-result = json.dumps({'nonce':nonce, 'ciphertext':ct})
-print(result)
 
-json_input = result
+def write_to_file(message: str):
+    f = open("Communication.txt", "a")
+    f.write(str(message) + "\n")
+    f.close()
+
+def append_fifteen_zeros_the_string(message:str):
+    return message + "000000000000000"
+
+## Encrypted communication phase
+def encrypt(message:str):
+    message = append_fifteen_zeros_the_string(message)
+    data = bytes(message, encoding='utf-8')
+    cipher = AES.new(key, AES.MODE_CTR)
+    ct_bytes = cipher.encrypt(data)
+    nonce = b64encode(cipher.nonce).decode('utf-8')
+    ct = b64encode(ct_bytes).decode('utf-8')
+    write_to_file(ct)
+    result = json.dumps({'nonce':nonce, 'ciphertext':ct})
+    print(result)
+    return result
 # decrypt
-try:
-    b64 = json.loads(json_input)
-    nonce = b64decode(b64['nonce'])
-    ct = b64decode(b64['ciphertext'])
-    cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
-    pt = cipher.decrypt(ct)
-    print("The message was: ", pt)
-except (ValueError, KeyError):
-    print("Incorrect decryption")
+def decrypt(json_input):
+    try:
+        b64 = json.loads(json_input)
+        nonce = b64decode(b64['nonce'])
+        ct = b64decode(b64['ciphertext'])
+
+        cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
+        pt = cipher.decrypt(ct)
+        pt = bytes.decode(pt, encoding='utf-8')
+        print("The message was: ", pt)
+
+        return pt
+    except (ValueError, KeyError):
+        print("Incorrect decryption")
+
+encrypted_message = encrypt("hello")
+
+decrypt(encrypted_message)

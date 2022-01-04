@@ -14,7 +14,7 @@ lock = threading.Lock()
 # semaphore = threading.Semaphore()
 
 
-def user_action(g, p):
+def generate_secret_and_g_a(g, p):
     secret = np.random.randint(2, 20)
     y = (g ** secret) % p
     return y, secret
@@ -73,37 +73,24 @@ def decrypt(json_input):
 global K_ab_A
 
 
-def get_user_input(message: str):
+def get_user_input(file:str):
 
-    y_A, secret_a = user_action(generator_g, prime_order_p)
-    print("seca", secret_a)
+    y_A, secret_a = generate_secret_and_g_a(generator_g, prime_order_p)
     # Alice look if there is any. Else continue.
-    f = open("Communication.txt", "a")
+    f = open(file, "a")
     f.write(str(y_A) + "\n")
-    # print(y_A)
     f.close()
-    f = open("Communication.txt", "r")
-    f = np.genfromtxt("Communication.txt")
+    f = open(file, "r")
+    f = np.genfromtxt(file)
     while f.size <= 1:
-        f = np.genfromtxt("Communication.txt")
-        # semaphore.acquire()
+        f = np.genfromtxt(file)
 
-        print("2 sec")
-
-
-        # lock.release()
-        # semaphore.release()
-        time.sleep(2)
+        time.sleep(1)
     lock.acquire()
-
-
-    print("yes")
-    # # TODO: Change this.
-    f = open("Communication.txt", "r")
+    f = open(file, "r")
     lines = f.readlines()
     line = lines[1]
     y_B = int(line.strip())
-    print("y_B", y_B)
     global K_ab_A
     K_ab_A = pow(y_B, secret_a, prime_order_p)
     # K_ab_A = calculate_private_key(y_B, secret_a, prime_order_p)
@@ -112,58 +99,37 @@ def get_user_input(message: str):
 
 
 global K_ab_B
-def user2():
+def user2(file:str):
     # semaphore.acquire()
     lock.acquire()
     global K_ab_B
     message = input("Please enter username" + "\n")
-    y_B, secret_b = user_action(generator_g, prime_order_p)
-    print("secb", secret_b)
-    print("y_B", y_B)
-    f = open("Communication.txt", "a")
+    y_B, secret_b = generate_secret_and_g_a(generator_g, prime_order_p)
+    f = open(file, "a")
     f.write(str(y_B) + "\n")
-    # print(y_A)
     f.close()
     # t1.join()
-    f = open("Communication.txt", "r")
+    f = open(file, "r")
     line = f.readline()
     f.close()
     y_A2 = int(line.strip())
 
     # y_A2 = f[0]
-    print("y_A2", y_A2)
     K_ab_B = pow(y_A2, secret_b, prime_order_p)
-    print("k", K_ab_B)
     lock.release()
     # semaphore.release()
 
 message = input("Please enter username" + "\n")
-t1 = threading.Thread(target=get_user_input, args=("username",))
+t1 = threading.Thread(target=get_user_input, args=("Communication.txt",))
 t1.start()
-t2 = threading.Thread(target=user2)
+t2 = threading.Thread(target=user2, args= ("Communication.txt",))
 t2.start()
 t2.join()
 t1.join()
 
 
-
-print("k1",K_ab_A)
-print(K_ab_B)
 ## Encrypted communication phase
 
-
-
-
-# y_A, secret_a = user_action(generator_g, prime_order_p)
-
-
-
-# K_ab_A = calculate_private_key(y_B, secret_a)
-# K_ab_B = calculate_private_key(y_A, secret_b)
-
-# f = open("Communication.txt", "a")
-# f.write(str(y_A) + "\n")
-# f.close()
 def get_private_key(K_ab_A, K_ab_B):
     if K_ab_A == K_ab_B:
         hashed_string = hl.sha256(str(K_ab_A).encode('utf-8')).hexdigest()
@@ -171,14 +137,67 @@ def get_private_key(K_ab_A, K_ab_B):
         return key
 
 key = get_private_key(K_ab_A, K_ab_B)
-encrypted_message = encrypt(key, "hello")
+def user1_key(K_ab_A):
+    hashed_string = hl.sha256(str(K_ab_A).encode('utf-8')).hexdigest()
+    key = binascii.unhexlify(hashed_string)
+    return key
 
-decrypt(encrypted_message)
+def user2_key(K_ab_B):
+    hashed_string = hl.sha256(str(K_ab_B).encode('utf-8')).hexdigest()
+    key = binascii.unhexlify(hashed_string)
+    return key
 
+def user_send_message(message:str, key):
+    encrypted_message = encrypt(key, message)
+    return encrypted_message
+
+
+# encrypted_message = encrypt(key, "hello")
+input_from_user = " "
+user1_key = user1_key(K_ab_A)
+print("Alice's key", user1_key)
+user2_key = user2_key(K_ab_A)
+print("Bob's key", user2_key)
+while input_from_user != "-1":
+    input_from_user = input("Alice's message:")
+
+    encrypted_message = user_send_message(input_from_user, user1_key)
+    decrypt(encrypted_message)
+    input_from_user = input("Bob's message:")
+
+    encrypted_message = user_send_message(input_from_user, user2_key)
+    decrypt(encrypted_message)
+
+# decrypt(encrypted_message)
+
+def copy_files_into_A_and_B(file1, file2):
+    with open("Communication.txt") as f:
+        with open(file1, "w") as f1:
+            for line in f:
+                f1.write(line)
+    with open("Communication.txt") as f:
+        with open(file2, "w") as f2:
+            for line in f:
+                f2.write(line)
 
 # Man in the middle
 def man_in_the_middle(file1, file2):
-    pass
+    # copy_files_into_A_and_B(file1, file2)
+    print("########################")
+    print("Man in the middle")
+    # For Alice.
+    message = input("Attacker username" + "\n")
+    t1 = threading.Thread(target=get_user_input, args=(file1,))
+    t1.start()
+    t2 = threading.Thread(target=user2, args= (file1,))
+    t2.start()
+    t2.join()
+    t1.join()
+
+
+    # For Bob
+
+
 
 
 file1 = "Communication_A.txt"

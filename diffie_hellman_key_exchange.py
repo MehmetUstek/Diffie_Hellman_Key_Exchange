@@ -63,38 +63,53 @@ def decrypt(json_input):
     except (ValueError, KeyError):
         print("Incorrect decryption")
 
-def get_user_input(message: str):
-    message = input("Please enter " + message + "\n")
+
+global K_ab_A
+global K_ab_B
+
+
+def get_user_input(message: str, i):
+    global K_ab_A
+    global K_ab_B
     y_A, secret_a = user_action(generator_g, prime_order_p)
     # Alice look if there is any. Else continue.
     f = open("Communication.txt", "a")
     f.write(str(y_A) + "\n")
-    print(y_A)
+    # print(y_A)
     f.close()
+    while True:
+        f = np.asarray(np.genfromtxt("Communication.txt", dtype='U'))
+        print("2 sec")
+        if f.size > 1:
+            print("yes")
+            # TODO: Change this.
+            if i == 0:
+                y_B = f[1].astype(int)
+                K_ab_A = calculate_private_key(y_B, secret_a)
+            elif i == 1:
+                y_B = f[0].astype(int)
+                K_ab_B = calculate_private_key(y_B, secret_a)
+            break
+        time.sleep(10)
 
 
 
-
-t1 = threading.Thread(target=get_user_input, args=("username",))
+message = input("Please enter username" + "\n")
+t1 = threading.Thread(target=get_user_input, args=("username",0,))
 t1.start()
-t1.join()
-t2 = threading.Thread(target=get_user_input, args=("username",))
-t2.start()
-t2.join()
-t_end = time.time() + 60 * 15
-# while True:
-#     # Add 10-second wait in here. While another party continues.
-#     f = np.asarray(np.genfromtxt("Communication.txt", dtype='U'))
-#     print("10 sec")
-#     if f.size > 1:
-#         print("yes")
-#
-#         break
-#     time.sleep(10)
 
+t2 = threading.Thread(target=get_user_input, args=("username",1,))
+message = input("Please enter username" + "\n")
+t2.start()
+t1.join()
+t2.join()
+
+
+print(K_ab_A)
+print(K_ab_B)
 
 # y_A, secret_a = user_action(generator_g, prime_order_p)
-y_B, secret_b = user_action(generator_g, prime_order_p)
+
 
 
 # K_ab_A = calculate_private_key(y_B, secret_a)

@@ -24,6 +24,7 @@ def generate_secret_and_g_a(g, p):
     y = pow(g, secret, p)
     return y, secret
 
+
 # Given the secret and the public key of the second party, the first party calculates its private key.
 # The following function for calculation is just like the one before,
 # ya modulo p = gab mod p.
@@ -43,6 +44,7 @@ def write_to_file(message: str, filename):
 
 def append_fifteen_zeros_the_string(message: str):
     return message + "000000000000000"
+
 
 # Given the key, message and the filename, this function encrypts the message
 # using AES-128 CTR encryption, with a random nonce.
@@ -71,7 +73,7 @@ def encrypt(key, message: str, filename):
 #  Takes the message written to the file and splits it into nonce and ciphertext.
 #  Next, it decrypts the message using these two parameters with AES-128 CTR mode.
 #  It then returns the plaintext.
-def decrypt(message_input_from_file, key):
+def decrypt(username, message_input_from_file, key):
     try:
         # b64 = json.loads(json_input)
         # nonce = b64decode(b64['nonce'])
@@ -83,7 +85,7 @@ def decrypt(message_input_from_file, key):
         cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
         pt = cipher.decrypt(ct)
         pt = bytes.decode(pt, encoding='utf-8')
-        print("The message was: ", pt)
+        print(username + " received the ciphertext, the message was:", pt)
 
         return pt
     except (ValueError, KeyError):
@@ -104,7 +106,7 @@ def get_user_input(file: str):
     while f.size <= 1:
         f = np.genfromtxt(file)
         # TODO: Change to 10
-        time.sleep(1)
+        time.sleep(10)
     lock.acquire()
     f = open(file, "r")
     lines = f.readlines()
@@ -148,12 +150,14 @@ def get_private_key(K_ab_A, K_ab_B):
         key = binascii.unhexlify(hashed_string)
         return key
 
+
 # K_ab_A is the calculated private key, namely the g^ab mod p.
 # This function returns the H(gab mod p) in an ascii form.
 def user1_key(K_ab_A):
     hashed_string = hl.sha256(str(K_ab_A).encode('utf-8')).hexdigest()
     key = binascii.unhexlify(hashed_string)
     return key
+
 
 # K_ab_B is the calculated private key, namely the g^ab mod p.
 # This function returns the H(gab mod p) in an ascii form.
@@ -185,31 +189,29 @@ def communication_phase(username1, username2, K_ab_A, K_ab_B, filename):
         dummy = user_send_message(input_from_user, user1Key, filename)
         encrypted_message = np.genfromtxt(filename, dtype="U")[message_counter]
         if not encrypted_message:
-            # TODO: Change to 10.
-            time.sleep(1)
+            time.sleep(10)
         else:
             # print("current_message", encrypted_message)
-            decrypt(encrypted_message, user2Key)
+            decrypt(username2, encrypted_message, user2Key)
         input_from_user = input(username2 + "'s message:")
         message_counter += 1
         dummy = user_send_message(input_from_user, user2Key, filename)
         encrypted_message = np.genfromtxt(filename, dtype="U")[message_counter]
         if not encrypted_message:
-            # TODO: Change to 10.
-            time.sleep(1)
+            time.sleep(10)
         else:
-            decrypt(encrypted_message, user1Key)
+            decrypt(username1, encrypted_message, user1Key)
 
 
 def attacker_communication_phase(username1, username2, K_ab_A1, K_ab_B1, K_ab_A2, K_ab_B2, file1, file2):
     input_from_user = " "
     attackerKey_first_party = user1_key(K_ab_A)
-    print("Attacker1's key", attackerKey_first_party)
+    print("Attacker1's key with " + username1, attackerKey_first_party)
     userKey_first_party = user2_key(K_ab_B)
     print(username1 + "'s key", userKey_first_party)
 
     attackerKey_second_party = user1_key(K_ab_A)
-    print("Attacker2's key", attackerKey_second_party)
+    print("Attacker2's key with " + username2, attackerKey_second_party)
     userKey_second_party = user2_key(K_ab_B)
     print(username2 + "'s key", userKey_second_party)
     message_counter_1 = 1
@@ -221,35 +223,62 @@ def attacker_communication_phase(username1, username2, K_ab_A1, K_ab_B1, K_ab_A2
         dummy = user_send_message(input_from_user, userKey_first_party, file1)
         encrypted_message = np.genfromtxt(file1, dtype="U")[message_counter_1]
         if not encrypted_message:
-            # TODO: Change to 10.
-            time.sleep(1)
+            time.sleep(10)
         else:
             # print("current_message", encrypted_message)
-            decrypt(encrypted_message, attackerKey_first_party)
+            decrypt("Attacker", encrypted_message, attackerKey_first_party)
         # First, the message is taken from first party. Then encrypted with first party key.
-        encrypted_message = user_send_message(input_from_user, userKey_first_party, file1)
+        # encrypted_message = user_send_message(input_from_user, userKey_first_party, file1)
         # Then, the message is decrypted with attacker's key with first party.
-        decrypt(encrypted_message, attackerKey_first_party)
+        # decrypt(encrypted_message, attackerKey_first_party)
         # Then Attacker decides what to send to the second party.
         input_from_user = input("The message that will be sent to other party:")
         if input_from_user == "-1":
             break
         # Attacker encrypts his message with his own key.
-        encrypted_message = user_send_message(input_from_user, attackerKey_second_party, file2)
-        # The second party decrypts the message with their own key.
-        decrypt(encrypted_message, userKey_second_party)
+        dummy = user_send_message(input_from_user, attackerKey_second_party, file2)
+        encrypted_message = np.genfromtxt(file2, dtype="U")[message_counter_1]
+        if not encrypted_message:
+            time.sleep(10)
+        else:
+            # print("current_message", encrypted_message)
+            # The second party decrypts the message with their own key.
+            decrypt(username2, encrypted_message, userKey_second_party)
+
+        # encrypted_message = user_send_message(input_from_user, attackerKey_second_party, file2)
+
+        # decrypt(encrypted_message, userKey_second_party)
 
         # All above steps now for the second party sending messages.
         input_from_user = input(username2 + "'s message:")
         if input_from_user == "-1":
             break
-        encrypted_message = user_send_message(input_from_user, userKey_second_party, file2)
-        # Again attacker will decrypt the message from second party, with his key for second party.
-        decrypt(encrypted_message, attackerKey_second_party)
+        message_counter_1 += 1
+        dummy = user_send_message(input_from_user, userKey_second_party, file2)
+        encrypted_message = np.genfromtxt(file2, dtype="U")[message_counter_1]
+        if not encrypted_message:
+            time.sleep(10)
+        else:
+            # print("current_message", encrypted_message)
+            decrypt("Attacker", encrypted_message, attackerKey_second_party)
+        # encrypted_message = user_send_message(input_from_user, userKey_second_party, file2)
+        # decrypt(encrypted_message, attackerKey_second_party)
         input_from_user = input("The message that will be sent to other party:")
-        encrypted_message = user_send_message(input_from_user, attackerKey_first_party, file1)
-        decrypt(encrypted_message, userKey_first_party)
+        dummy = user_send_message(input_from_user, attackerKey_first_party, file1)
+        encrypted_message = np.genfromtxt(file1, dtype="U")[message_counter_1]
+        if not encrypted_message:
+            time.sleep(10)
+        else:
+            # Again attacker will decrypt the message from second party, with his key for second party.
+            decrypt(username1, encrypted_message, userKey_first_party)
 
+        # encrypted_message = user_send_message(input_from_user, attackerKey_first_party, file1)
+        # decrypt(encrypted_message, userKey_first_party)
+
+
+# Cleaning the files before restart.
+f = open("Communication.txt", "w")
+f.close()
 
 username1 = input("Please enter username for user 1" + "\n")
 t1 = threading.Thread(target=get_user_input, args=("Communication.txt",))
@@ -314,4 +343,9 @@ def man_in_the_middle(file1, file2):
 
 file1 = "Communication_A.txt"
 file2 = "Communication_B.txt"
+# Cleaning the files before restart.
+f = open(file1, "w")
+f.close()
+f = open(file2, "w")
+f.close()
 man_in_the_middle(file1, file2)

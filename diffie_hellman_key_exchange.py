@@ -46,10 +46,11 @@ def encrypt(key, message: str, filename):
     nonce = b64encode(cipher.nonce).decode('utf-8')
     ct = b64encode(ct_bytes).decode('utf-8')
     ct_end_str = append_fifteen_zeros_the_string(ct)
-    write_to_file(ct_end_str, filename)
+    # write_to_file(ct_end_str, filename)
 
     result = json.dumps({'nonce': nonce, 'ciphertext': ct})
     str = nonce + "," + ct_end_str
+    write_to_file(str, filename)
     print(result)
     print(str)
 
@@ -59,9 +60,12 @@ def encrypt(key, message: str, filename):
 # decrypt
 def decrypt(json_input, key):
     try:
-        b64 = json.loads(json_input)
-        nonce = b64decode(b64['nonce'])
-        ct = b64decode(b64['ciphertext'])
+        # b64 = json.loads(json_input)
+        # nonce = b64decode(b64['nonce'])
+        # ct = b64decode(b64['ciphertext'])
+        json_input = json_input.split(",")
+        nonce = b64decode(json_input[0])
+        ct = b64decode(json_input[1][:-15])
 
         cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
         pt = cipher.decrypt(ct)
@@ -86,7 +90,7 @@ def get_user_input(file: str):
     f = np.genfromtxt(file)
     while f.size <= 1:
         f = np.genfromtxt(file)
-
+        # TODO: Change to 10
         time.sleep(1)
     lock.acquire()
     f = open(file, "r")
@@ -159,16 +163,30 @@ def communication_phase(username1, username2, K_ab_A, K_ab_B, filename):
     print(username1 + "'s key", user1Key)
     user2Key = user2_key(K_ab_B)
     print(username2 + "'s key", user2Key)
+    message_counter = 1
     while input_from_user != "-1":
         input_from_user = input(username1 + "'s message:")
         if input_from_user == "-1":
             break
-        encrypted_message = user_send_message(input_from_user, user1Key, filename)
-        decrypt(encrypted_message, user2Key)
+        message_counter += 1
+        dummy = user_send_message(input_from_user, user1Key, filename)
+        encrypted_message = np.genfromtxt(filename, dtype="U")[message_counter]
+        if not encrypted_message:
+            # TODO: Change to 10.
+            time.sleep(1)
+        else:
+            print("current_message", encrypted_message)
+            decrypt(encrypted_message, user2Key)
         input_from_user = input(username2 + "'s message:")
-
-        encrypted_message = user_send_message(input_from_user, user2Key, filename)
-        decrypt(encrypted_message, user1Key)
+        message_counter += 1
+        dummy = user_send_message(input_from_user, user2Key, filename)
+        encrypted_message = np.genfromtxt(filename, dtype="U")[message_counter]
+        if not encrypted_message:
+            # TODO: Change to 10.
+            time.sleep(1)
+        else:
+            print("current_message", encrypted_message)
+            decrypt(encrypted_message, user1Key)
 
 
 def attacker_communication_phase(username1, username2, K_ab_A1, K_ab_B1,K_ab_A2, K_ab_B2, file1, file2):

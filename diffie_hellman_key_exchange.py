@@ -11,8 +11,6 @@ import threading
 prime_order_p = 16069
 generator_g = 21
 lock = threading.Lock()
-
-
 # semaphore = threading.Semaphore()
 
 
@@ -171,12 +169,12 @@ def communication_phase(username1, username2, K_ab_A, K_ab_B, filename):
 def attacker_communication_phase(username1, username2, K_ab_A1, K_ab_B1,K_ab_A2, K_ab_B2, file1, file2):
     input_from_user = " "
     attackerKey_first_party = user1_key(K_ab_A)
-    print(username1 + "'s key", attackerKey_first_party)
+    print("Attacker1's key", attackerKey_first_party)
     userKey_first_party = user2_key(K_ab_B)
-    print(username2 + "'s key", userKey_first_party)
+    print(username1 + "'s key", userKey_first_party)
 
     attackerKey_second_party = user1_key(K_ab_A)
-    print(username1 + "'s key", attackerKey_second_party)
+    print("Attacker2's key", attackerKey_second_party)
     userKey_second_party = user2_key(K_ab_B)
     print(username2 + "'s key", userKey_second_party)
 
@@ -220,6 +218,7 @@ username2 = input("Please enter username for user 2" + "\n")
 t2.start()
 t2.join()
 t1.join()
+print("First Part Communication Phase")
 communication_phase(username1, username2, K_ab_A, K_ab_B, "Communication.txt")
 
 # Unnecessary function
@@ -239,6 +238,7 @@ def man_in_the_middle(file1, file2):
     # copy_files_into_A_and_B(file1, file2)
     print("########################")
     print("Man in the middle")
+
     # For Alice.
     attacker_username1 = input("Please enter username for Attacker for user 1" + "\n")
     t1 = threading.Thread(target=get_user_input, args=(file1,))
@@ -251,8 +251,8 @@ def man_in_the_middle(file1, file2):
     global K_ab_A, K_ab_B
     attacker_K_with_first_party = np.copy(K_ab_A)
     first_party_K = np.copy(K_ab_B)
-    # First with alice
-    # communication_phase(username1, username2, K_ab_A, K_ab_B, file1)
+    # First Alice got her keys with Attacker
+    # Now, Bob will get his keys with the Attacker.
 
     attacker_username2 = input("Please enter username for Attacker for user 2" + "\n")
     t1 = threading.Thread(target=get_user_input, args=(file2,))
@@ -265,9 +265,9 @@ def man_in_the_middle(file1, file2):
     attacker_K_with_second_party = np.copy(K_ab_A)
     second_party_K = np.copy(K_ab_B)
     # First with alice
+    print("Man in the Middle Communication Phase")
     attacker_communication_phase(username1, username2, attacker_K_with_first_party, first_party_K, attacker_K_with_second_party, second_party_K, file1,file2)
 
-    # For Bob
 
 
 file1 = "Communication_A.txt"

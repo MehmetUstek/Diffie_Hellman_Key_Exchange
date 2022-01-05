@@ -16,7 +16,8 @@ lock = threading.Lock()
 
 def generate_secret_and_g_a(g, p):
     secret = np.random.randint(2, 20)
-    y = (g ** secret) % p
+    # y = (g ** secret) % p
+    y = pow(g, secret, p)
     return y, secret
 
 
@@ -48,7 +49,10 @@ def encrypt(key, message: str, filename):
     write_to_file(ct_end_str, filename)
 
     result = json.dumps({'nonce': nonce, 'ciphertext': ct})
+    str = nonce + "," + ct_end_str
     print(result)
+    print(str)
+
     return result
 
 
@@ -78,7 +82,7 @@ def get_user_input(file: str):
     f = open(file, "a")
     f.write(str(y_A) + "\n")
     f.close()
-    f = open(file, "r")
+    # f = open(file, "r")
     f = np.genfromtxt(file)
     while f.size <= 1:
         f = np.genfromtxt(file)
@@ -123,6 +127,7 @@ def user2(file: str):
 
 ## Encrypted communication phase
 
+# Unnecessary function.
 def get_private_key(K_ab_A, K_ab_B):
     if K_ab_A == K_ab_B:
         hashed_string = hl.sha256(str(K_ab_A).encode('utf-8')).hexdigest()

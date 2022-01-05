@@ -28,8 +28,8 @@ def calculate_private_key(y, secret, p):
     return pk
 
 
-def write_to_file(message: str):
-    f = open("Communication.txt", "a")
+def write_to_file(message: str, filename):
+    f = open(filename, "a")
     f.write(str(message) + "\n")
     f.close()
 
@@ -39,14 +39,14 @@ def append_fifteen_zeros_the_string(message: str):
 
 
 
-def encrypt(key, message: str):
+def encrypt(key, message: str, filename):
     data = bytes(message, encoding='utf-8')
     cipher = AES.new(key, AES.MODE_CTR)
     ct_bytes = cipher.encrypt(data)
     nonce = b64encode(cipher.nonce).decode('utf-8')
     ct = b64encode(ct_bytes).decode('utf-8')
     ct_end_str = append_fifteen_zeros_the_string(ct)
-    write_to_file(ct_end_str)
+    write_to_file(ct_end_str, filename)
 
     result = json.dumps({'nonce': nonce, 'ciphertext': ct})
     print(result)
@@ -54,7 +54,7 @@ def encrypt(key, message: str):
 
 
 # decrypt
-def decrypt(json_input):
+def decrypt(json_input, key):
     try:
         b64 = json.loads(json_input)
         nonce = b64decode(b64['nonce'])
@@ -103,7 +103,6 @@ def user2(file:str):
     # semaphore.acquire()
     lock.acquire()
     global K_ab_B
-    message = input("Please enter username" + "\n")
     y_B, secret_b = generate_secret_and_g_a(generator_g, prime_order_p)
     f = open(file, "a")
     f.write(str(y_B) + "\n")
@@ -119,10 +118,11 @@ def user2(file:str):
     lock.release()
     # semaphore.release()
 
-message = input("Please enter username" + "\n")
+username1 = input("Please enter username" + "\n")
 t1 = threading.Thread(target=get_user_input, args=("Communication.txt",))
 t1.start()
 t2 = threading.Thread(target=user2, args= ("Communication.txt",))
+username2 = input("Please enter username 2" + "\n")
 t2.start()
 t2.join()
 t1.join()
@@ -136,7 +136,7 @@ def get_private_key(K_ab_A, K_ab_B):
         key = binascii.unhexlify(hashed_string)
         return key
 
-key = get_private_key(K_ab_A, K_ab_B)
+
 def user1_key(K_ab_A):
     hashed_string = hl.sha256(str(K_ab_A).encode('utf-8')).hexdigest()
     key = binascii.unhexlify(hashed_string)
@@ -147,27 +147,28 @@ def user2_key(K_ab_B):
     key = binascii.unhexlify(hashed_string)
     return key
 
-def user_send_message(message:str, key):
-    encrypted_message = encrypt(key, message)
+def user_send_message(message:str, key, filename):
+    encrypted_message = encrypt(key, message, filename)
     return encrypted_message
 
+# key = get_private_key(K_ab_A, K_ab_B)
+def communication_phase(username1, username2, K_ab_A, K_ab_B, filename):
+    input_from_user = " "
+    user1Key = user1_key(K_ab_A)
+    print("Alice's key", user1Key)
+    user2Key = user2_key(K_ab_B)
+    print("Bob's key", user2Key)
+    while input_from_user != "-1":
+        input_from_user = input(username1+"'s message:")
 
-# encrypted_message = encrypt(key, "hello")
-input_from_user = " "
-user1_key = user1_key(K_ab_A)
-print("Alice's key", user1_key)
-user2_key = user2_key(K_ab_A)
-print("Bob's key", user2_key)
-while input_from_user != "-1":
-    input_from_user = input("Alice's message:")
+        encrypted_message = user_send_message(input_from_user, user1Key, filename)
+        decrypt(encrypted_message, user2Key)
+        input_from_user = input(username2+"'s message:")
 
-    encrypted_message = user_send_message(input_from_user, user1_key)
-    decrypt(encrypted_message)
-    input_from_user = input("Bob's message:")
+        encrypted_message = user_send_message(input_from_user, user2Key, filename)
+        decrypt(encrypted_message, user1Key)
 
-    encrypted_message = user_send_message(input_from_user, user2_key)
-    decrypt(encrypted_message)
-
+communication_phase(username1, username2, K_ab_A, K_ab_B)
 # decrypt(encrypted_message)
 
 def copy_files_into_A_and_B(file1, file2):
@@ -186,13 +187,17 @@ def man_in_the_middle(file1, file2):
     print("########################")
     print("Man in the middle")
     # For Alice.
-    message = input("Attacker username" + "\n")
+    username1 = input("Attacker username" + "\n")
     t1 = threading.Thread(target=get_user_input, args=(file1,))
     t1.start()
     t2 = threading.Thread(target=user2, args= (file1,))
+    username2 = input("Please enter username" + "\n")
     t2.start()
     t2.join()
     t1.join()
+    global K_ab_A, K_ab_B
+    # First with alice
+    communication_phase(username1, username2, K_ab_A, K_ab_B, file1)
 
 
     # For Bob

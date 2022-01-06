@@ -19,7 +19,7 @@ lock = threading.Lock()
 # the public key of the user.
 # Namely, it randomly outputs a secret a, and calculates ga modulo p.
 def generate_secret_and_g_a(g, p):
-    secret = np.random.randint(2, 20)
+    secret = np.random.randint(10, 70)
     # y = (g ** secret) % p
     y = pow(g, secret, p)
     return y, secret
@@ -277,19 +277,19 @@ def attacker_communication_phase(username1, username2, K_ab_A1, K_ab_B1, K_ab_A2
 
 
 # Cleaning the files before restart.
-f = open("Communication.txt", "w")
-f.close()
-
-username1 = input("Please enter username for user 1" + "\n")
-t1 = threading.Thread(target=get_user_input, args=("Communication.txt",))
-t1.start()
-t2 = threading.Thread(target=user2, args=("Communication.txt",))
-username2 = input("Please enter username for user 2" + "\n")
-t2.start()
-t2.join()
-t1.join()
-print("First Part Communication Phase")
-communication_phase(username1, username2, K_ab_A, K_ab_B, "Communication.txt")
+# f = open("Communication.txt", "w")
+# f.close()
+#
+# username1 = input("Please enter username for user 1" + "\n")
+# t1 = threading.Thread(target=get_user_input, args=("Communication.txt",))
+# t1.start()
+# t2 = threading.Thread(target=user2, args=("Communication.txt",))
+# username2 = input("Please enter username for user 2" + "\n")
+# t2.start()
+# t2.join()
+# t1.join()
+# print("First Part Communication Phase")
+# communication_phase(username1, username2, K_ab_A, K_ab_B, "Communication.txt")
 
 
 # Unnecessary function
@@ -341,11 +341,102 @@ def man_in_the_middle(file1, file2):
                                  attacker_K_with_second_party, second_party_K, file1, file2)
 
 
-file1 = "Communication_A.txt"
-file2 = "Communication_B.txt"
-# Cleaning the files before restart.
-f = open(file1, "w")
-f.close()
-f = open(file2, "w")
-f.close()
-man_in_the_middle(file1, file2)
+# file1 = "Communication_A.txt"
+# file2 = "Communication_B.txt"
+# # Cleaning the files before restart.
+# f = open(file1, "w")
+# f.close()
+# f = open(file2, "w")
+# f.close()
+# man_in_the_middle(file1, file2)
+
+# The above part was single-file implementation.
+
+# Two separate file implementation:
+
+def get_user_input2(file: str, y_A, sleep_time):
+    f = np.genfromtxt(file)
+    while f.size <= 1:
+        f = np.genfromtxt(file)
+        print("Waiting for the second party to enter!")
+        time.sleep(sleep_time)
+
+
+    lock.acquire()
+    f = np.genfromtxt(file)
+    index = np.where(f == y_A)[0][0]
+    is_first_user = index == 0
+    index = 0
+    for i in f:
+        if i != y_A:
+            y_B = int(i)
+    # f = open(file, "r")
+    # lines = f.readlines()
+    # line = lines[1]
+    # y_B = int(line.strip())
+    private_key = pow(y_B, secret_a, prime_order_p)
+    # K_ab_A = calculate_private_key(y_B, secret_a, prime_order_p)
+    lock.release()
+    return  private_key, is_first_user
+
+def communication_phase2(username, hashed_private_key, is_first_user, file, sleep_time):
+    # message_counter = 1
+    size = 2
+    while True:
+        if is_first_user:
+            input_from_user = input(username + "'s message:")
+            # message_counter += 1
+            # Write message to the file.
+            dummy = user_send_message(input_from_user, hashed_private_key, file)
+            # Get the next message from second party.
+            f = np.genfromtxt(file, dtype="U")
+            # old_size = f.size
+            size += 1
+            while f.size <= size:
+                f = np.genfromtxt(file)
+                time.sleep(sleep_time)
+                print("Waiting for the other party to send a message!")
+            encrypted_message = np.genfromtxt(file, dtype="U")[size]
+            if not encrypted_message:
+                time.sleep(sleep_time)
+            else:
+                # print("current_message", encrypted_message)
+                decrypt(username, encrypted_message, hashed_private_key)
+                size += 1
+        else:
+            f = np.genfromtxt(file, dtype="U")
+            while f.size == size:
+                f = np.genfromtxt(file)
+                print("Waiting for other party")
+                time.sleep(sleep_time)
+
+            encrypted_message = np.genfromtxt(file, dtype="U")[size]
+            if not encrypted_message:
+                time.sleep(sleep_time)
+            else:
+                # print("current_message", encrypted_message)
+                decrypt(username, encrypted_message, hashed_private_key)
+                size += 1
+                input_from_user = input(username + "'s message:")
+                dummy = user_send_message(input_from_user, hashed_private_key, file)
+                size += 1
+
+
+sleep_time = 1
+filename = "Communication.txt"
+# username = input("Please enter username" + "\n")
+username = "A"
+y_A, secret_a = generate_secret_and_g_a(generator_g, prime_order_p)
+command = ""
+while command != "init":
+    command = input("Please enter init to start." + "\n")
+    if command == "init":
+        break
+
+write_to_file(str(y_A), filename)
+private_key, is_first_user = get_user_input2(filename, y_A, sleep_time)
+print(private_key)
+print("is_first?", is_first_user)
+userKey = user1_key(private_key)
+print(username + "'s hashed key:", userKey)
+communication_phase2(username, userKey, is_first_user, filename, sleep_time)

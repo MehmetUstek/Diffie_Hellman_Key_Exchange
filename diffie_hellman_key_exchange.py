@@ -354,7 +354,7 @@ def man_in_the_middle(file1, file2):
 
 # Two separate file implementation:
 
-def get_user_input2(file: str, y_A, sleep_time):
+def get_user_input2(file: str, y_A, secret_a, sleep_time):
     f = np.genfromtxt(file)
     while f.size <= 1:
         f = np.genfromtxt(file)
@@ -379,18 +379,20 @@ def get_user_input2(file: str, y_A, sleep_time):
     lock.release()
     return  private_key, is_first_user
 
-def communication_phase2(username, hashed_private_key, is_first_user, file, sleep_time):
-    # message_counter = 1
+def communication_phase_multiple_files(username, hashed_private_key, is_first_user, file, sleep_time):
+    input_from_user = ""
+    pt = ""
     size = 2
-    while True:
+    while input_from_user != "-1" or pt != "-1":
         if is_first_user:
             input_from_user = input(username + "'s message:")
-            # message_counter += 1
+
             # Write message to the file.
             dummy = user_send_message(input_from_user, hashed_private_key, file)
+            if input_from_user == "-1":
+                break
             # Get the next message from second party.
             f = np.genfromtxt(file, dtype="U")
-            # old_size = f.size
             size += 1
             while f.size <= size:
                 f = np.genfromtxt(file)
@@ -400,8 +402,7 @@ def communication_phase2(username, hashed_private_key, is_first_user, file, slee
             if not encrypted_message:
                 time.sleep(sleep_time)
             else:
-                # print("current_message", encrypted_message)
-                decrypt(username, encrypted_message, hashed_private_key)
+                pt = decrypt(username, encrypted_message, hashed_private_key)
                 size += 1
         else:
             f = np.genfromtxt(file, dtype="U")
@@ -415,7 +416,9 @@ def communication_phase2(username, hashed_private_key, is_first_user, file, slee
                 time.sleep(sleep_time)
             else:
                 # print("current_message", encrypted_message)
-                decrypt(username, encrypted_message, hashed_private_key)
+                pt = decrypt(username, encrypted_message, hashed_private_key)
+                if pt == "-1":
+                    break
                 size += 1
                 input_from_user = input(username + "'s message:")
                 dummy = user_send_message(input_from_user, hashed_private_key, file)
@@ -423,20 +426,59 @@ def communication_phase2(username, hashed_private_key, is_first_user, file, slee
 
 
 sleep_time = 1
-filename = "Communication.txt"
-# username = input("Please enter username" + "\n")
-username = "A"
-y_A, secret_a = generate_secret_and_g_a(generator_g, prime_order_p)
-command = ""
-while command != "init":
-    command = input("Please enter init to start." + "\n")
-    if command == "init":
-        break
+def part1():
+    filename = "Communication.txt"
+    # Cleaning the files before restart.
+    # f = open(filename, "w")
+    # f.close()
+    username = input("Please enter username" + "\n")
+    # username = "A"
+    y, secret = generate_secret_and_g_a(generator_g, prime_order_p)
+    command = ""
+    while command != "init":
+        command = input("Please enter init to start." + "\n")
+        if command == "init":
+            break
 
-write_to_file(str(y_A), filename)
-private_key, is_first_user = get_user_input2(filename, y_A, sleep_time)
-print(private_key)
-print("is_first?", is_first_user)
-userKey = user1_key(private_key)
-print(username + "'s hashed key:", userKey)
-communication_phase2(username, userKey, is_first_user, filename, sleep_time)
+    write_to_file(str(y), filename)
+    private_key, is_first_user = get_user_input2(filename, y, secret, sleep_time)
+    print(private_key)
+    print("is_first?", is_first_user)
+    userKey = user1_key(private_key)
+    print(username + "'s hashed key:", userKey)
+    communication_phase_multiple_files(username, userKey, is_first_user, filename, sleep_time)
+
+# part1()
+# Man in the middle part - Multiple Files
+file1 = "Communication_A.txt"
+file2 = "Communication_B.txt"
+# Cleaning the files before restart.
+# f = open(file1, "w")
+# f.close()
+# f = open(file2, "w")
+# f.close()
+def part2():
+    print("################################")
+    print("Man in the middle part")
+    username = input("Please enter username" + "\n")
+    # username = "A"
+    y, secret = generate_secret_and_g_a(generator_g, prime_order_p)
+    command = ""
+    while command != "init":
+        command = input("Please enter init to start." + "\n")
+        if command == "init":
+            break
+    f = np.genfromtxt(file1)
+    if f.size == 0:
+        file = file1
+    else:
+        file = file2
+    write_to_file(str(y), file)
+    private_key, is_first_user = get_user_input2(file, y, secret, sleep_time)
+    print(private_key)
+    print("is_first?", is_first_user)
+    userKey = user1_key(private_key)
+    print(username + "'s hashed key:", userKey)
+    communication_phase_multiple_files(username, userKey, is_first_user, file, sleep_time)
+
+# part2()

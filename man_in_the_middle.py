@@ -46,7 +46,7 @@ def maninmid_communication_phase(username, hashed_private_key1, hashed_private_k
             # Attacker sends whatever he wants to the second party
             input_from_user = input("Attacker's message to the other party:")
             dummy = dh.user_send_message(input_from_user, hashed_private_key2, file2)
-
+            size2 += 1
 
             # Now attacker waits the response of second party.
 
@@ -61,18 +61,18 @@ def maninmid_communication_phase(username, hashed_private_key1, hashed_private_k
                 time.sleep(sleep_time)
             else:
                 # print("current_message", encrypted_message)
-                pt = dh.decrypt(username, encrypted_message, hashed_private_key1)
+                pt = dh.decrypt(username, encrypted_message, hashed_private_key2)
                 if pt == "-1":
                     break
                 size2 += 1
                 # Attacker sends whatever he wants to the first party
                 input_from_user = input("Attacker's message to the other party:")
                 dummy = dh.user_send_message(input_from_user, hashed_private_key1, file1)
+                size1 += 1
 
-
-            input_from_user = input(username + "'s message:")
-            dummy = dh.user_send_message(input_from_user, hashed_private_key1, file1)
-            size1 += 1
+            # input_from_user = input(username + "'s message:")
+            # dummy = dh.user_send_message(input_from_user, hashed_private_key1, file1)
+            # size1 += 1
 
 
 

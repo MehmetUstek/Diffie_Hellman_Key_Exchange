@@ -1,12 +1,14 @@
 import diffie_hellman_key_exchange as dh
 import numpy as np
 import time
+
 prime_order_p = 16069
 generator_g = 21
 sleep_time = dh.sleep_time
 
 file1 = "Communication_A.txt"
 file2 = "Communication_B.txt"
+
 
 def get_private_key_from_user(file: str, y_A, secret_a, sleep_time):
     f = np.genfromtxt(file)
@@ -20,9 +22,11 @@ def get_private_key_from_user(file: str, y_A, secret_a, sleep_time):
         if i != y_A:
             y_B = int(i)
     private_key = pow(y_B, secret_a, prime_order_p)
-    return  private_key
+    return private_key
 
-def maninmid_communication_phase(username, hashed_private_key1, hashed_private_key2, is_first_user, file1, file2, sleep_time):
+
+def maninmid_communication_phase(username, hashed_private_key1, hashed_private_key2, is_first_user, file1, file2,
+                                 sleep_time):
     input_from_user = ""
     pt = ""
     size1 = 2
@@ -75,7 +79,6 @@ def maninmid_communication_phase(username, hashed_private_key1, hashed_private_k
             # size1 += 1
 
 
-
 def man_in_middle():
     username = input("Please enter Attacker username:" + "\n")
     # username = "A"
@@ -93,9 +96,6 @@ def man_in_middle():
             dh.write_to_file(str(y), file1)
             dh.write_to_file(str(y), file2)
             private_key1 = get_private_key_from_user(file1, y, secret, sleep_time)
-            print(private_key1)
-            print(private_key1)
-            print("is_first?", is_first_user)
             userKey1 = dh.user1_key(private_key1)
             print(username + "'s hashed key:", userKey1)
 
@@ -104,16 +104,16 @@ def man_in_middle():
     while userKey2 == "":
         f = np.genfromtxt(file2)
         if f.size != 0:
-
             private_key2 = get_private_key_from_user(file2, y, secret, sleep_time)
-            print(private_key2)
-            print(private_key2)
-            print("is_first?", is_first_user)
             userKey2 = dh.user1_key(private_key2)
             print(username + "'s hashed key:", userKey2)
         time.sleep(sleep_time)
 
-
     maninmid_communication_phase(username, userKey1, userKey2, is_first_user, file1, file2, sleep_time)
 
+
+f = open(file1, "w")
+f.close()
+f = open(file2, "w")
+f.close()
 man_in_middle()

@@ -361,7 +361,6 @@ def get_user_input2(file: str, y_A, secret_a, sleep_time):
         print("Waiting for the second party to enter!")
         time.sleep(sleep_time)
 
-
     lock.acquire()
     f = np.genfromtxt(file)
     index = np.where(f == y_A)[0][0]
@@ -377,7 +376,8 @@ def get_user_input2(file: str, y_A, secret_a, sleep_time):
     private_key = pow(y_B, secret_a, prime_order_p)
     # K_ab_A = calculate_private_key(y_B, secret_a, prime_order_p)
     lock.release()
-    return  private_key, is_first_user
+    return private_key, is_first_user
+
 
 def communication_phase_multiple_files(username, hashed_private_key, is_first_user, file, sleep_time):
     input_from_user = ""
@@ -425,7 +425,9 @@ def communication_phase_multiple_files(username, hashed_private_key, is_first_us
                 size += 1
 
 
-sleep_time = 1
+sleep_time = 10
+
+
 def part1():
     filename = "Communication.txt"
     # Cleaning the files before restart.
@@ -442,16 +444,18 @@ def part1():
 
     write_to_file(str(y), filename)
     private_key, is_first_user = get_user_input2(filename, y, secret, sleep_time)
-    print(private_key)
-    print("is_first?", is_first_user)
+    # print("is_first?", is_first_user)
     userKey = user1_key(private_key)
     print(username + "'s hashed key:", userKey)
     communication_phase_multiple_files(username, userKey, is_first_user, filename, sleep_time)
+
 
 # part1()
 # Man in the middle part - Multiple Files
 file1 = "Communication_A.txt"
 file2 = "Communication_B.txt"
+
+
 # Cleaning the files before restart.
 # f = open(file1, "w")
 # f.close()
@@ -475,8 +479,6 @@ def part2():
         file = file2
     write_to_file(str(y), file)
     private_key, is_first_user = get_user_input2(file, y, secret, sleep_time)
-    print(private_key)
-    print("is_first?", is_first_user)
     userKey = user1_key(private_key)
     print(username + "'s hashed key:", userKey)
     communication_phase_multiple_files(username, userKey, is_first_user, file, sleep_time)

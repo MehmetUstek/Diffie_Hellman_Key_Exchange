@@ -91,6 +91,7 @@ def man_in_middle():
         f = np.genfromtxt(file1)
         if f.size != 0:
             dh.write_to_file(str(y), file1)
+            dh.write_to_file(str(y), file2)
             private_key1 = get_private_key_from_user(file1, y, secret, sleep_time)
             print(private_key1)
             print(private_key1)
@@ -103,7 +104,7 @@ def man_in_middle():
     while userKey2 == "":
         f = np.genfromtxt(file2)
         if f.size != 0:
-            dh.write_to_file(str(y), file2)
+
             private_key2 = get_private_key_from_user(file2, y, secret, sleep_time)
             print(private_key2)
             print(private_key2)

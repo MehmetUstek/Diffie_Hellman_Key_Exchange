@@ -7,6 +7,7 @@ from base64 import b64decode
 import json
 import time
 import threading
+import os
 
 prime_order_p = 16069
 generator_g = 21
@@ -369,6 +370,7 @@ def get_user_input2(file: str, y_A, secret_a, sleep_time):
     for i in f:
         if i != y_A:
             y_B = int(i)
+            break
     # f = open(file, "r")
     # lines = f.readlines()
     # line = lines[1]
@@ -430,6 +432,9 @@ sleep_time = 10
 
 def part1():
     filename = "Communication.txt"
+    if not os.path.isfile(filename):
+        f = open(filename, "w")
+        f.close()
     # Cleaning the files before restart.
     # f = open(filename, "w")
     # f.close()
